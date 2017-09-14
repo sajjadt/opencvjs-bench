@@ -57,5 +57,7 @@ var config = {
     width: 1920,
     height: 1080
   },
-  duration : 1000 // Benchmark duration in ms
+  // Benchmarking duration in milliseconds
+  // If set to null, iteration properties will be used instead.
+  duration : 500
 }
