@@ -1,71 +1,50 @@
-// Refer to commons.js to see available types
-// Iterations will be considered only if config.duration property is set to null
-var config = {
-  tests: {
-    'basic_arith': {
-      'run': true,
-      'functions': ['add', 'absdiff', 'compare', 'max'],
-      'iterations': 10000
-    },
-    'bitwise': {
-      'run': true,
-      'functions': ['not', 'and'],
-      'iterations': 2000
-    },
-    'filters' : {
-      'run': true,
-      'functions': ['blur', 'gaussian_blur', 'median_blur', 'filter2d'],
-      'iterations': 2000
-    },
-    'stats' : {
-      'run': true,
-      'functions': ['integral', 'mean', 'norm', 'mean_std_dev', 'histogram'],
-      'iterations': 10000
-    },
-    'color_conversion': {
-      'run': true,
-      'functions': ['rgb_to_gray', 'rgb_to_yuv', 'yuv_to_rgb' ],
-      'iterations': 2000
-    },
-    'transform' : {
-      'run': true,
-      'functions': ['pyr_down', 'image_warp'],
-      'iterations': 2000
-    },
-    'apps_canny' : {
-      'run': true,
-      'functions': ['canny'],
-      'iterations': 50
-    },
-    'object_detection': {
-      'run': true,
-      'functions': ['haar_detect', 'hog_compute'],
-      'iterations': 100
-    },
-    'features' : {
-      'run': true,
-      'functions': ['orb', 'harris_corners'],
-      'iterations': 100
-    },
-    'morph' : {
-      'run': true,
-      'functions': ['erode'],
-      'iterations': 2000
-    }
-  },
-  //'duration': null
-  'duration' : 1000 // Benchmark duration in ms
+var type_dict = {};
+
+var loop_template_timed = function(foo, args, time_budget) {
+  var iterations = 0;
+  var start_time = performance.now();
+  while (performance.now() - start_time < time_budget) {
+    iterations += 1;
+    foo.apply(this, args);
+  }
+  return iterations;
+};
+
+var loop_template_itrations = function(foo, args, iterations) {
+  var start_time = performance.now();
+  for (var i=0; i < iterations; i+=1) {
+    foo.apply(this, args);
+  }
+  return performance.now() - start_time;
+};
+
+var setup_type_dict = function() {
+  type_dict[cv.CV_8UC1] =  'CV_8UC1';
+  type_dict[cv.CV_8SC1] =  'CV_8SC1';
+  type_dict[cv.CV_8UC3] =  'CV_8UC3';
+  type_dict[cv.CV_8UC4] =  'CV_8UC4';
+  type_dict[cv.CV_16UC1] =  'CV_16UC1';
+  type_dict[cv.CV_16SC1] =  'CV_16SC1';
+  type_dict[cv.CV_32SC1] =  'CV_32SC1';
+  type_dict[cv.CV_32FC1] =  'CV_32FC1';
 }
 
 function run_test(test, callback) {
   if (config.tests[test] == null || !config.tests[test].run)
     return;
-  var is_timed =(config.duration != null);
-  //Run tests for each function and for each type
+  var is_timed = (config.duration != null);
+
+  // Run tests for every function/type/operation combinations
   config.tests[test].functions.forEach(function(foo) {
     kernels[foo].types.forEach(function(type) {
-      console.log('testing ' + ' ' + foo + ' ' + type );
-      kernels[foo].body(type, callback, is_timed, config.tests[test].iterations);
+      if ('undefined' !== typeof kernels[foo].operations && kernels[foo].operations != null) {
+        kernels[foo].operations.forEach(function(operation) {
+          kernels[foo].body(type, callback, is_timed, config.tests[test].iterations, operation);
+        });
+      }
+      else {
+        kernels[foo].body(type, callback, is_timed, config.tests[test].iterations);
+      }
     });
   });
 }
