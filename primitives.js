@@ -529,11 +529,11 @@ kernels = {
       if (is_timed) {
         var iterations = loop_template_timed(cv.warpAffine,
           [src, dst, M, dsize, cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar()], config['duration']);
-          callback(["wrap_perspecitve", type_dict[type], "did", iterations, "iterations."].join(" "));
+          callback(["warp_affine", type_dict[type], "did", iterations, "iterations."].join(" "));
         } else {
           var delay = loop_template_itrations(cv.warpAffine,
             [src, dst, M, dsize, cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar()], iterations);
-            callback(["wrap_perspecitve", type_dict[type], "took", delay, "."].join(" "));
+            callback(["warp_affine", type_dict[type], "took", delay, "."].join(" "));
           }
           src.delete();
           dst.delete();
@@ -675,15 +675,14 @@ kernels = {
       var iterations = loop_template_timed(cv.cornerHarris,
       [source, dest, 5, 7, 0.1, cv.BORDER_DEFAULT]);
       callback(["ORB", type_dict[type], "did", iterations, "iterations."].join(" "));
-    } else {
-    var delay = loop_template_itrations(cv.cornerHarris,
-    [source, dest, 5, 7, 0.1, cv.BORDER_DEFAULT], iterations);
-    callback(["ORB", type_dict[type], "took", delay, "."].join(" "));
-  }
+      } else {
+        var delay = loop_template_itrations(cv.cornerHarris, [source, dest, 5, 7, 0.1, cv.BORDER_DEFAULT], iterations);
+        callback(["ORB", type_dict[type], "took", delay, "."].join(" "));
+      }
 
-  source.delete();
-  dest.delete();
-  */
+      source.delete();
+      dest.delete();
+      */
     }
   }
 };
