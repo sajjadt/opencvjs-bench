@@ -1,0 +1,31 @@
+{
+  "name": "opencvjs-bench",
+  "version": "1.0.0",
+  "description": "OpenCV JavaScript Benchmark",
+  "main": "benchmark.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sajjadt/opencvjs-bench.git"
+  },
+  "keywords": [
+    "OpenCV",
+    "JS",
+    "Benchmark",
+    "Performance"
+  ],
+  "author": "Sajjad Taheri",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/sajjadt/opencvjs-bench/issues"
+  },
+  "homepage": "https://github.com/sajjadt/opencvjs-bench#readme",
+  "devDependencies": {
+    "webpack": "^3.8.1"
+  },
+  "dependencies": {
+    "fs": "0.0.1-security"
+  }
+}
