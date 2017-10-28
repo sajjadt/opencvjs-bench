@@ -1,5 +1,5 @@
 # opencvjs-bench
-This is a benchmark for OpenCV.js. Currently several primitive functions from core and image processing modules are included.
+This is a benchmark for OpenCV.js. Currently several primitive functions from core and image processing modules are included. An online version can be accessed by navigating to [this URL](https://sajjadt.github.io/opencvjs-bench/run.html).
 
 # Usage
  run.html with a browser supporting ASM.js/WebAssembly. To switch between ASM.js/WASM simply repalce the opencv.js file in the root directory.
