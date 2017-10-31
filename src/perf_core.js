@@ -2,290 +2,367 @@ cv = require("./opencv.js");
 config = require("./config.js");
 common = require("./common.js");
 
-(function() {
+var TYPES = common.types;
 
+(function() {
   var Kernels = (function() {
-    var image_rows = config.image_size.width;
-    var image_cols = config.image_size.width;
-    var TYPES = common.types;
     // Iterations will be considered only if config.duration property is set to null
     var Kernels = {
-      compare: {
+      add: {
+        name: 'cv.add',
         types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
-        //TODO operations: [Number(cv.CMP_EQ), Number(cv.CMP_GE)],
-        operations: [0, 2],
-        body: function(type, callback, is_timed, iterations, operation) {
-
-          var mat = cv.Mat.ones(image_rows, image_cols, type),
-          mat2 = cv.Mat.eye(image_rows, image_cols, type),
-          mat3 = new cv.Mat();
-
-          if (is_timed) {
-            var iterations = common.loop_template_timed(cv.compare, [mat, mat2, mat3, operation], config['duration']);
-            callback(["compare", operation, common.type_dict[type], "did", iterations, "iterations."].join(" "));
-          } else {
-            var delay = common.loop_template_itrations(cv.compare, [mat, mat2, mat3, operation], iterations);
-            callback(["compare", operation, common.type_dict[type], "took", delay, "."].join(" "));
-          }
-
-          mat.delete();
-          mat2.delete();
-          mat3.delete();
-        }
-      },
-      and: {
-        types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
-        body: function(type, callback, is_timed, iterations) {
-          var mat = cv.Mat.ones(image_rows, image_cols, type),
-          mat2 = cv.Mat.eye(image_rows, image_cols, type),
-          mat3 = new cv.Mat(),
-          mat4 = new cv.Mat();
-
-          if (is_timed) {
-            var iterations = common.loop_template_timed(cv.bitwise_and, [mat, mat2, mat3, mat4], config['duration']);
-            callback(["and", common.type_dict[type], "did", iterations, "iterations."].join(" "));
-          } else {
-            var delay = common.loop_template_itrations(cv.bitwise_and, [mat, mat2, mat3, mat4], iterations);
-            callback(["and", common.type_dict[type], "took", delay, "."].join(" "));
-          }
-
-          mat.delete();
-          mat2.delete();
-          mat3.delete();
-          mat4.delete();
+        allocate: function(type, image_rows, image_cols) {
+          this.mat = cv.Mat.ones(image_rows, image_cols, type);
+          this.mat2 = cv.Mat.eye(image_rows, image_cols, type);
+          this.mat3 = new cv.Mat();
+        },
+        from_yuv_data: function(data, image_rows, image_cols) {
+          var t1 = Date.now();
+          var yuvMat = new cv.Mat(image_rows+image_rows/2, image_cols, TYPES.UCharC1);
+          yuvMat.data.set(data);
+          // TODO other color formats
+          cv.cvtColor(yuvMat, this.mat, cv.COLOR_YUV2GRAY_I420);
+          cv.cvtColor(yuvMat, this.mat2, cv.COLOR_YUV2GRAY_I420);
+          yuvMat.delete();
+          return Date.now() - t1;
+        },
+        callable: function() {
+          return {'func': cv.add, 'params': [this.mat, this.mat2, this.mat3]};
+        },
+        deallocate: function () {
+          this.mat.delete();
+          this.mat2.delete();
+          this.mat3.delete();
         }
       },
       not: {
+        name: 'cv.bitwise_not',
         types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
-        body: function(type, callback, is_timed, iterations) {
-          var mat = cv.Mat.ones(image_rows, image_cols, type),
-          mat2 = new cv.Mat(),
-          mat3 = new cv.Mat();
-
-          if (is_timed) {
-            var iterations = common.loop_template_timed(cv.bitwise_not, [mat, mat2, mat3], config['duration']);
-            callback(["not", common.type_dict[type], "did", iterations, "iterations."].join(" "));
-          } else {
-            var delay = common.loop_template_itrations(cv.bitwise_not, [mat, mat2, mat3], iterations);
-            callback(["not", common.type_dict[type], "took", delay, "."].join(" "));
-          }
-
-          mat.delete();
-          mat2.delete();
-          mat3.delete();
+        allocate: function(type, image_rows, image_cols) {
+          this.mat = cv.Mat.ones(image_rows, image_cols, type);
+          this.mat2 = new cv.Mat();
+        },
+        from_yuv_data: function(data, image_rows, image_cols) {
+          var t1 = Date.now();
+          var yuvMat = new cv.Mat(image_rows+image_rows/2, image_cols, TYPES.UCharC1);
+          yuvMat.data.set(data);
+          // TODO other color formats
+          cv.cvtColor(yuvMat, this.mat, cv.COLOR_YUV2GRAY_I420);
+          yuvMat.delete();
+          return Date.now() - t1;
+        },
+        callable: function() {
+          return {'func': cv.bitwise_not, 'params': [this.mat, this.mat2]};
+        },
+        deallocate: function () {
+          this.mat.delete();
+          this.mat2.delete();
+        }
+      },
+      compare: {
+        name: 'cv.compare',
+        types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
+        //operations: [Number(cv.CMP_EQ), Number(cv.CMP_GE)],
+        operations: [0, 2],
+        allocate: function(type, image_rows, image_cols) {
+          this.mat = cv.Mat.ones(image_rows, image_cols, type);
+          this.mat2 = cv.Mat.eye(image_rows, image_cols, type);
+          this.mat3 = new cv.Mat();
+        },
+        from_yuv_data: function(data, image_rows, image_cols) {
+          var t1 = Date.now();
+          var yuvMat = new cv.Mat(image_rows+image_rows/2, image_cols, TYPES.UCharC1);
+          yuvMat.data.set(data);
+          // TODO other color formats
+          cv.cvtColor(yuvMat, this.mat, cv.COLOR_YUV2GRAY_I420);
+          cv.cvtColor(yuvMat, this.mat2, cv.COLOR_YUV2GRAY_I420);
+          yuvMat.delete();
+          return Date.now() - t1;
+        },
+        callable: function(operation = 0) {
+          return {'func': cv.compare, 'params': [this.mat, this.mat2, this.mat3, operation]};
+        },
+        deallocate: function () {
+          this.mat.delete();
+          this.mat2.delete();
+          this.mat3.delete();;
+        }
+      },
+      and: {
+        name: 'cv.bitwise_and',
+        types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
+        allocate: function(type, image_rows, image_cols) {
+          this.mat = cv.Mat.ones(image_rows, image_cols, type);
+          this.mat2 = cv.Mat.eye(image_rows, image_cols, type);
+          this.mat3 = new cv.Mat();
+        },
+        callable: function() {
+          return {'func': cv.bitwise_and, 'params': [this.mat, this.mat2, this.mat3]};
+        },
+        from_yuv_data: function(data, image_rows, image_cols) {
+          var t1 = Date.now();
+          var yuvMat = new cv.Mat(image_rows+image_rows/2, image_cols, TYPES.UCharC1);
+          yuvMat.data.set(data);
+          // TODO other color formats
+          cv.cvtColor(yuvMat, this.mat, cv.COLOR_YUV2GRAY_I420);
+          cv.cvtColor(yuvMat, this.mat2, cv.COLOR_YUV2GRAY_I420);
+          yuvMat.delete();
+          return Date.now() - t1;
+        },
+        deallocate: function () {
+          this.mat.delete();
+          this.mat2.delete();
+          this.mat3.delete();
         }
       },
       add_weighted: {
+        name: 'cv.addWeighted',
         types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
-        body: function(type, callback, is_timed, iterations) {
-
-          var mat = cv.Mat.ones(image_rows, image_cols, type),
-          mat2 = new cv.Mat(image_rows, image_cols, type),
-          dst = new cv.Mat();
-
-          if (is_timed) {
-            var iterations = common.loop_template_timed(cv.addWeighted, [mat, 0.4, mat2, 0.6, 0, dst], config['duration']);
-            callback(["add_weighted", common.type_dict[type], "did", iterations, "iterations."].join(" "));
-          } else {
-            var delay = common.loop_template_itrations(cv.addWeighted, [mat, 0.4, mat2, 0.6, 0, dst], iterations);
-            callback(["add_weighted", common.type_dict[type], "took", delay, "."].join(" "));
-          }
-
-          mat.delete();
-          mat2.delete();
-          dst.delete();
+        allocate: function(type, image_rows, image_cols) {
+          this.mat = cv.Mat.ones(image_rows, image_cols, type);
+          this.mat2 = new cv.Mat(image_rows, image_cols, type);
+          this.dst = new cv.Mat();
+        },
+        from_yuv_data: function(data, image_rows, image_cols) {
+          var t1 = Date.now();
+          var yuvMat = new cv.Mat(image_rows+image_rows/2, image_cols, TYPES.UCharC1);
+          yuvMat.data.set(data);
+          // TODO other color formats
+          cv.cvtColor(yuvMat, this.mat, cv.COLOR_YUV2GRAY_I420);
+          cv.cvtColor(yuvMat, this.mat2, cv.COLOR_YUV2GRAY_I420);
+          yuvMat.delete();
+          return Date.now() - t1;
+        },
+        callable: function() {
+          return {'func': cv.addWeighted, 'params': [this.mat, 0.4, this.mat2, 0.6, 0, this.dst]};
+        },
+        deallocate: function () {
+          this.mat.delete();
+          this.mat2.delete();
+          this.dst.delete();
         }
+
       },
       invert: {
+        name: 'cv.invert',
         types: [TYPES.FloatC1],
-        body: function(type, callback, is_timed, iterations) {
-
-          var mat = cv.Mat.ones(image_rows, image_cols, type),
-          mat2 = new cv.Mat();
-          if (is_timed) {
-            var iterations = common.loop_template_timed(cv.invert, [mat, mat2], config['duration']);
-            callback(["invert", common.type_dict[type], "did", iterations, "iterations."].join(" "));
-          } else {
-            var delay = common.loop_template_itrations(cv.invert, [mat, mat2], iterations);
-            callback(["invert", common.type_dict[type], "took", delay, "."].join(" "));
-          }
-
-          mat.delete();
-          mat2.delete();
+        allocate: function(type, image_rows, image_cols) {
+          this.mat = cv.Mat.ones(image_rows, image_cols, type);
+          this.mat2 = new cv.Mat();
+        },
+        callable: function() {
+          return {'func': cv.invert, 'params': [this.mat, this.mat2]};
+        },
+        deallocate: function () {
+          this.mat.delete();
+          this.mat2.delete();
         }
       },
       normalize: {
+        name: 'cv.normalize',
         types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
         //TODO operations : [cv.NORM_INF, cv.NORM_L1, cv.NORM_L2],
         operations : [1, 2, 4],
-        body: function(type, callback, is_timed, iterations, operation) {
-          var mat = cv.Mat.ones(image_rows, image_cols, type),
-          mat2 = new cv.Mat(),
-          alpha = 1,
-          beta = 0;
-
-          if (is_timed) {
-            var iterations = common.loop_template_timed(cv.normalize, [mat, mat2, alpha, beta, operation], config['duration']);
-            callback(["normalize", operation, common.type_dict[type], "did", iterations, "iterations."].join(" "));
-          } else {
-            var delay = common.loop_template_itrations(cv.normalize, [mat, mat2, alpha, beta, operation], iterations);
-            callback(["normalize", operation, common.type_dict[type], "took", delay, "."].join(" "));
-          }
-
-          mat.delete();
-          mat2.delete();
+        allocate: function(type, image_rows, image_cols) {
+          this.mat = cv.Mat.ones(image_rows, image_cols, type);
+          this.mat2 = new cv.Mat();
+          this.alpha = 1;
+          this.beta = 0;
+        },
+        from_yuv_data: function(data, image_rows, image_cols) {
+          var t1 = Date.now();
+          var yuvMat = new cv.Mat(image_rows+image_rows/2, image_cols, TYPES.UCharC1);
+          yuvMat.data.set(data);
+          // TODO other color formats
+          cv.cvtColor(yuvMat, this.mat, cv.COLOR_YUV2GRAY_I420);
+          yuvMat.delete();
+          return Date.now() - t1;
+        },
+        callable: function(operation=4) {
+          return {'func': cv.normalize, 'params': [this.mat, this.mat2, this.alpha, this.beta, operation]};
+        },
+        deallocate: function () {
+          this.mat.delete();
+          this.mat2.delete();
         }
       },
       max: {
+        name: 'cv.max',
         types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
-        body: function(type, callback, is_timed, iterations) {
-          var mat = cv.Mat.ones(image_rows, image_cols, type),
-          mat2 = cv.Mat.eye(image_rows, image_cols, type),
-          mat3 = new cv.Mat();
-
-          if (is_timed) {
-            var iterations = common.loop_template_timed(cv.max, [mat, mat2, mat3], config['duration']);
-            callback(["max", common.type_dict[type], "did", iterations, "iterations."].join(" "));
-          } else {
-            var delay = common.loop_template_itrations(cv.max, [mat, mat2, mat3], iterations);
-            callback(["max", common.type_dict[type], "took", delay, "."].join(" "));
-          }
-
-          mat.delete();
-          mat2.delete();
-          mat3.delete();
-        }
-      },
-      add: {
-        types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
-        body: function(type, callback, is_timed, iterations) {
-          var mat = cv.Mat.ones(image_rows, image_cols, type),
-          mat2 = cv.Mat.eye(image_rows, image_cols, type),
-          mat3 = new cv.Mat();
-
-          if (is_timed) {
-            var iterations = common.loop_template_timed(cv.add, [mat, mat2, mat3], config['duration']);
-            callback(["add", common.type_dict[type], "did", iterations, "iterations."].join(" "));
-          } else {
-            var delay = common.loop_template_itrations(cv.add, [mat, mat2, mat3], iterations);
-            callback(["add", common.type_dict[type], "took", delay, "."].join(" "));
-          }
-
-          mat.delete();
-          mat2.delete();
-          mat3.delete();
+        allocate: function(type, image_rows, image_cols) {
+          this.mat = cv.Mat.ones(image_rows, image_cols, type);
+          this.mat2 = cv.Mat.eye(image_rows, image_cols, type);
+          this.mat3 = new cv.Mat();
+        },
+        callable: function() {
+          return {'func': cv.max, 'params': [this.mat, this.mat2, this.mat3]};
+        },
+        from_yuv_data: function(data, image_rows, image_cols) {
+          var t1 = Date.now();
+          var yuvMat = new cv.Mat(image_rows+image_rows/2, image_cols, TYPES.UCharC1);
+          yuvMat.data.set(data);
+          // TODO other color formats
+          cv.cvtColor(yuvMat, this.mat, cv.COLOR_YUV2GRAY_I420);
+          cv.cvtColor(yuvMat, this.mat2, cv.COLOR_YUV2GRAY_I420);
+          yuvMat.delete();
+          return Date.now() - t1;
+        },
+        deallocate: function () {
+          this.mat.delete();
+          this.mat2.delete();
+          this.mat3.delete();
         }
       },
       in_range: {
+        name: 'cv.inRange',
         types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
-        body: function(type, callback, is_timed, iterations) {
-          var mat = cv.Mat.ones(image_rows, image_cols, type),
-          mat2 = cv.Mat.eye(image_rows, image_cols, type),
-          mat3 = cv.Mat.eye(image_rows, image_cols, type),
-          mat4 = new cv.Mat();
-
-          if (is_timed) {
-            var iterations = common.loop_template_timed(cv.inRange, [mat, mat2, mat3, mat4], config['duration']);
-            callback(["in_range", common.type_dict[type], "did", iterations, "iterations."].join(" "));
-          } else {
-            var delay = common.loop_template_itrations(cv.inRange, [mat, mat2, mat3, mat4], iterations);
-            callback(["in_range", common.type_dict[type], "took", delay, "."].join(" "));
-          }
-
-          mat.delete();
-          mat2.delete();
-          mat3.delete();
-          mat4.delete();
+        allocate: function(type, image_rows, image_cols) {
+          this.mat = cv.Mat.ones(image_rows, image_cols, type);
+          this.mat2 = cv.Mat.eye(image_rows, image_cols, type);
+          this.mat3 = cv.Mat.eye(image_rows, image_cols, type);
+          this.mat4 = new cv.Mat();
+        },
+        from_yuv_data: function(data, image_rows, image_cols) {
+          var t1 = Date.now();
+          var yuvMat = new cv.Mat(image_rows+image_rows/2, image_cols, TYPES.UCharC1);
+          yuvMat.data.set(data);
+          // TODO other color formats
+          cv.cvtColor(yuvMat, this.mat, cv.COLOR_YUV2GRAY_I420);
+          cv.cvtColor(yuvMat, this.mat2, cv.COLOR_YUV2GRAY_I420);
+          cv.cvtColor(yuvMat, this.mat3, cv.COLOR_YUV2GRAY_I420);
+          yuvMat.delete();
+          return Date.now() - t1;
+        },
+        callable: function() {
+          return {'func': cv.inRange, 'params': [this.mat, this.mat2, this.mat3, this.mat4]};
+        },
+        deallocate: function () {
+          this.mat.delete();
+          this.mat2.delete();
+          this.mat3.delete();
+          this.mat4.delete();
         }
       },
       mean: {
+        name: 'cv.mean',
         types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
-        body: function(type, callback, is_timed, iterations) {
-          var source = new cv.Mat(image_rows, image_cols, type);
-
-          if (is_timed) {
-            var iterations = common.loop_template_timed(cv.mean,  [source], config['duration']);
-            callback(["mean", common.type_dict[type], "did", iterations, "iterations."].join(" "));
-          } else {
-            var delay = common.loop_template_itrations(cv.mean,  [source], iterations);
-            callback(["mean", common.type_dict[type], "took", delay, "."].join(" "));
-          }
-
-          source.delete();
+        allocate: function(type, image_rows, image_cols) {
+          this.source = cv.Mat.ones(image_rows, image_cols, type);
+        },
+        from_yuv_data: function(data, image_rows, image_cols) {
+          var t1 = Date.now();
+          var yuvMat = new cv.Mat(image_rows+image_rows/2, image_cols, TYPES.UCharC1);
+          yuvMat.data.set(data);
+          // TODO other color formats
+          cv.cvtColor(yuvMat, this.source, cv.COLOR_YUV2GRAY_I420);
+          yuvMat.delete();
+          return Date.now() - t1;
+        },
+        callable: function() {
+          return {'func': cv.mean, 'params': [this.source]};
+        },
+        deallocate: function () {
+          this.source.delete();
         }
       },
       norm: {
+        name: 'cv.norm',
         types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
-        body: function(type, callback, is_timed, iterations) {
-          var source = new cv.Mat(image_rows, image_cols, type);
-
-          if (is_timed) {
-            var iterations = common.loop_template_timed(cv.norm, [source, 4], config['duration']);
-            callback(["norm", common.type_dict[type], "did", iterations, "iterations."].join(" "));
-          } else {
-            var delay = common.loop_template_itrations(cv.norm, [source, 4], iterations);
-            callback(["norm", common.type_dict[type], "took", delay, "."].join(" "));
-          }
-
+        allocate: function(type, image_rows, image_cols) {
+          this.source = cv.Mat.ones(image_rows, image_cols, type);
+        },
+        from_yuv_data: function(data, image_rows, image_cols) {
+          var t1 = Date.now();
+          var yuvMat = new cv.Mat(image_rows+image_rows/2, image_cols, TYPES.UCharC1);
+          yuvMat.data.set(data);
+          // TODO other color formats
+          cv.cvtColor(yuvMat, this.source, cv.COLOR_YUV2GRAY_I420);
+          yuvMat.delete();
+          return Date.now() - t1;
+        },
+        callable: function() {
+          return {'func': cv.norm, 'params': [this.source, 4]};
+        },
+        deallocate: function () {
+          this.source.delete();
         }
       },
       mean_std_dev: {
+        name: 'cv.meanStdDev',
         types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
-        body: function(type, callback, is_timed, iterations) {
-          var source = new cv.Mat(image_rows, image_cols, type),
-          mean = new cv.Mat(),
-          stdDev = new cv.Mat();
-
-          if (is_timed) {
-            var iterations = common.loop_template_timed(cv.meanStdDev, [source, mean, stdDev], config['duration']);
-            callback(["mean_Std_dev", common.type_dict[type], "did", iterations, "iterations."].join(" "));
-          } else {
-            var delay = common.loop_template_itrations(cv.meanStdDev, [source, mean, stdDev], iterations);
-            callback(["mean_Std_dev", common.type_dict[type], "took", delay, "."].join(" "));
-          }
-
-          source.delete();
-          mean.delete();
-          stdDev.delete();
+        allocate: function(type, image_rows, image_cols) {
+          this.source = new cv.Mat(image_rows, image_cols, type);
+          this.mean = new cv.Mat();
+          this.stdDev = new cv.Mat();
+        },
+        from_yuv_data: function(data, image_rows, image_cols) {
+          var t1 = Date.now();
+          var yuvMat = new cv.Mat(image_rows+image_rows/2, image_cols, TYPES.UCharC1);
+          yuvMat.data.set(data);
+          // TODO other color formats
+          cv.cvtColor(yuvMat, this.source, cv.COLOR_YUV2GRAY_I420);
+          yuvMat.delete();
+          return Date.now() - t1;
+        },
+        callable: function() {
+          return {'func': cv.meanStdDev, 'params': [this.source, this.mean, this.stdDev]};
+        },
+        deallocate: function () {
+          this.source.delete();
+          this.mean.delete();
+          this.stdDev.delete();
         }
       },
       integral: {
+        name: 'cv.integral',
         types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
-        body: function(type, callback, is_timed, iterations) {
-          var mat = new cv.Mat(image_rows, image_cols, type);
-          var sum = new cv.Mat();
-
-          if (is_timed) {
-            var iterations = common.loop_template_timed(cv.integral, [mat, sum, -1], config['duration']);
-            callback(["integral", common.type_dict[type], "did", iterations, "iterations."].join(" "));
-          } else {
-            var delay = common.loop_template_itrations(cv.integral, [mat, sum, -1], iterations);
-            callback(["integral", common.type_dict[type], "took", delay, "."].join(" "));
-          }
-
-          mat.delete();
-          sum.delete();
+        allocate: function(type, image_rows, image_cols) {
+          this.mat = new cv.Mat(image_rows, image_cols, type);
+          this.sum = new cv.Mat();
+        },
+        from_yuv_data: function(data, image_rows, image_cols) {
+          var t1 = Date.now();
+          var yuvMat = new cv.Mat(image_rows+image_rows/2, image_cols, TYPES.UCharC1);
+          yuvMat.data.set(data);
+          // TODO other color formats
+          cv.cvtColor(yuvMat, this.mat, cv.COLOR_YUV2GRAY_I420);
+          yuvMat.delete();
+          return Date.now() - t1;
+        },
+        callable: function() {
+          return {'func': cv.integral, 'params': [this.mat, this.sum, -1]};
+        },
+        deallocate: function () {
+          this.mat.delete();
+          this.sum.delete();
         }
       },
       absdiff: {
+        name: 'cv.absdiff',
         types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
-        body: function(type, callback, is_timed, iterations) {
-          var mat1 = cv.Mat.ones(image_rows, image_cols, type);
-          var mat2 = cv.Mat.ones(image_rows, image_cols, type);
-          var mat3 = new cv.Mat();
-
-          if (is_timed) {
-            var iterations = common.loop_template_timed(cv.absdiff, [mat1, mat2, mat3], config['duration']);
-            callback(["absdiff", common.type_dict[type], "did", iterations, "iterations."].join(" "));
-          } else {
-            var delay = common.loop_template_itrations(cv.absdiff, [mat1, mat2, mat3], iterations);
-            callback(["absdiff", common.type_dict[type], "took", delay, "."].join(" "));
-          }
-
-          mat1.delete();
-          mat2.delete();
-          mat3.delete();
+        allocate: function(type, image_rows, image_cols) {
+          this.mat1 = cv.Mat.ones(image_rows, image_cols, type);
+          this.mat2 = cv.Mat.ones(image_rows, image_cols, type);
+          this.mat3 = new cv.Mat();
         },
+        from_yuv_data: function(data, image_rows, image_cols) {
+          var t1 = Date.now();
+          var yuvMat = new cv.Mat(image_rows+image_rows/2, image_cols, TYPES.UCharC1);
+          yuvMat.data.set(data);
+          // TODO other color formats
+          cv.cvtColor(yuvMat, this.mat1, cv.COLOR_YUV2GRAY_I420);
+          cv.cvtColor(yuvMat, this.mat2, cv.COLOR_YUV2GRAY_I420);
+          yuvMat.delete();
+          return Date.now() - t1;
+        },
+        callable: function() {
+          return {'func': cv.absdiff, 'params': [this.mat1, this.mat2, this.mat3]};
+        },
+        deallocate: function () {
+          this.mat1.delete();
+          this.mat2.delete();
+          this.mat3.delete();
+        }
       }
     }
 

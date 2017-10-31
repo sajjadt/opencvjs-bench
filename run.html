@@ -55,8 +55,18 @@
 
 			console.log("runtime initialized");
 
+			var image_rows = config.image_size.height;
+			var image_cols = config.image_size.width;
+			var duration = config.duration;
+
 			common.setup_type_dict();
-			var iterator = benchmark.run_tests();
+			var iterator = benchmark.run_tests(
+			  {'update': update,
+			  'image_rows': image_rows,
+			  'image_cols': image_cols,
+			  'duration': duration,
+			  'iterations': 0});
+
 			foo(iterator);
 
 		},
