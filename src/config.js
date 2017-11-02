@@ -12,7 +12,7 @@
         },
         'bitwise': {
           'run': true,
-          'functions': ['not', 'and'],
+          'functions': ['not', 'and', 'xor'],
           'iterations': 1000
         },
         'stats' : {
