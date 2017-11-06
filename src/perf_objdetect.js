@@ -8,52 +8,42 @@ var TYPES = common.types;
   var Kernels = (function() {
     // Iterations will be considered only if config.duration property is set to null
     var Kernels = {
-      haar: {
-        name: 'cv.haardetect',
-        types: [TYPES.UCharC1],
-        init: function() {
-          cv.FS_createLazyFile('/', 'haarcascade_frontalface_default.xml',
-            '../assets/haarcascade_frontalface_default.xml', true, false);
-        },
+
+      // Reference: https://docs.opencv.org/master/d2/d99/tutorial_js_face_detection.html
+      haar_detect: {
+        name: "cv.haar_cascade",
+        types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
         allocate: function(type, image_rows, image_cols) {
-          this.mat = cv.Mat.ones(image_rows, image_cols, type);
-          this.outVect = new cv.RectVector();
-          // Loading classifier with the frontal face model
-          this.cascade = new cv.CascadeClassifier();
-          this.cascade.load('haarcascade_frontalface_default.xml');
-        },
-        from_yuv_data: function(data, image_rows, image_cols) {
-          var t1 = Date.now();
-          var yuvMat = new cv.Mat(image_rows+image_rows/2, image_cols, TYPES.UCharC1);
-          yuvMat.data.set(data);
-          // TODO other color formats
-          cv.cvtColor(yuvMat, this.mat, cv.COLOR_YUV2GRAY_I420);
-          yuvMat.delete();
-          return Date.now() - t1;
+          // prepare input
+          this.gray = cv.Mat.ones(image_rows, image_cols, type);
+          this.faces = new cv.RectVector();
+          this.msize = new cv.Size(0, 0);
         },
         callable: function() {
-          return {'func': this.cascade.detectMultiScale,
-                  'params': [this.mat, this.outVect],
-                  'this_arg': this.cascade};
+          haar_detect = function(gray, faces, a, b, c, size1, size2) {
+            var faceCascade = new cv.CascadeClassifier();
+            faceCascade.load('../assets/haarcascade_frontalface_default.xml');
+            // faceCascade.load('/Users/shayangzang/Desktop/octaCat/opencvjs-bench/assets/haarcascade_frontalface_default.xml'); // load classifier
+            faceCascade.detectMultiScale(gray, faces, a, b, c, size1, size2)
+          }
+          return {'func': haar_detect, 'params': [this.gray, this.faces, 1.1, 3, 0, this.msize, this.msize]};
         },
-        deallocate: function () {
-          this.mat.delete();
-          this.outVect.delete();
-          this.cascade.delete();
+        deallocate: function() {
+          this.gray.delete();
+          this.faces.delete();
+          this.faceCascade.delete();
+          this.msize.delete();
         }
       },
-      hog: {
-        name: 'cv.hogcascade',
-        types: [TYPES.UCharC1],
-        init: function() {
-        },
+
+      // example function
+      add: {
+        name: 'cv.add',
+        types: [TYPES.UCharC1, TYPES.ShortC1, TYPES.FloatC1],
         allocate: function(type, image_rows, image_cols) {
           this.mat = cv.Mat.ones(image_rows, image_cols, type);
-          this.outVect = new cv.RectVector();
-          this.outWVect = new cv.DoubleVector();
-          this.cascade = new cv.HOGDescriptor();
-          // TODO: construct Mat from std::vector
-          this.cascade.setSVMDetector(cv.HOGDescriptor.getDefaultPeopleDetector());
+          this.mat2 = cv.Mat.eye(image_rows, image_cols, type);
+          this.mat3 = new cv.Mat();
         },
         from_yuv_data: function(data, image_rows, image_cols) {
           var t1 = Date.now();
@@ -61,23 +51,21 @@ var TYPES = common.types;
           yuvMat.data.set(data);
           // TODO other color formats
           cv.cvtColor(yuvMat, this.mat, cv.COLOR_YUV2GRAY_I420);
+          cv.cvtColor(yuvMat, this.mat2, cv.COLOR_YUV2GRAY_I420);
           yuvMat.delete();
           return Date.now() - t1;
         },
         callable: function() {
-          console.log(this.mat.type());
-          return {'func': this.cascade.detectMultiScale,
-                  'params': [this.mat, this.outVect, this.outWVect],
-                  'this_arg': this.cascade};
+          return {'func': cv.add, 'params': [this.mat, this.mat2, this.mat3]};
         },
         deallocate: function () {
           this.mat.delete();
-          this.outVect.delete();
-          this.outWVect.delete();
-          this.cascade.delete();
+          this.mat2.delete();
+          this.mat3.delete();
         }
       }
     }
+
     return Kernels;
   })();
 
