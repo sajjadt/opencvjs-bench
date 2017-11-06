@@ -7,7 +7,7 @@
         // Core
         'basic_arith': {
           'run': true,
-          'functions': ['add', 'absdiff', 'compare', 'max'],
+          'functions': ['haar_detect', 'add', 'absdiff', 'compare', 'max'],
           'iterations': 1000
         },
         'bitwise': {
