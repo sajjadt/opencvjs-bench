@@ -1,14 +1,16 @@
 var config = require("./config.js");
 var cv = require("./opencv.js")
 
+var common = require("./common.js");
 var core_kernels = require("./perf_core.js");
 var imgproc_kernels = require("./perf_imgproc.js");
-var common = require("./common.js");
+var objdetect_kernels = require("./perf_objdetect.js");
 
 // Preparing the list of perf tests
 var kernels = {};
 Object.assign(kernels, core_kernels);
 Object.assign(kernels, imgproc_kernels);
+Object.assign(kernels, objdetect_kernels);
 
 (function() {
 
@@ -22,15 +24,20 @@ Object.assign(kernels, imgproc_kernels);
 
         // Sequence
         if ('undefined' != typeof sequence) {
+          if ("init" in kernels_foo)
+            kernels_foo.init();
+
           kernels_foo.allocate(sequence.pixel_type, sequence.height, sequence.width);
           var io_delay = 0;
           var process_delay = 0;
 
           sequence.video.on('frame', function(frameIdx, data) {
-            if (frameIdx %20 == 0)
+            if (frameIdx % 100 == 0)
               console.log("processsing frame", frameIdx);
             io_delay += kernels_foo.from_yuv_data(data, sequence.height, sequence.width);
             process_delay += common.loop_template_itrations(kernels_foo.callable(), 1);
+
+            callback("heyz " + frameIdx + sequence.num_frames);
             if (frameIdx == sequence.num_frames - 1) {
               kernels_foo.deallocate();
               callback([kernels_foo.name, "took", process_delay].join(" "));
@@ -40,13 +47,14 @@ Object.assign(kernels, imgproc_kernels);
           var is_timed = (config.duration != null && 'undefined' == typeof params.sequence);
           // Fixed input
           // For every type, operation
-          var kernel_func = kernels_foo.callable().func;
-          var kernel_params = kernels_foo.callable().params;
-
           kernels_foo.types.forEach(function(type) {
             if ("operation" in kernels_foo) {
               kernels_foo.operations.forEach(function(operation) {
+                if ("init" in kernels_foo)
+                  kernels_foo.init();
+
                 kernels_foo.allocate(type, params.image_rows, params.image_cols);
+
                 if (is_timed) {
                   var iterations = common.loop_template_timed(kernels_foo.callable(), params['duration']);
                   callback([kernels_foo.name, common.type_dict[type], "did", iterations, "iterations."].join(" "));
@@ -57,6 +65,9 @@ Object.assign(kernels, imgproc_kernels);
                 kernels[foo].deallocate();
               });
             } else {
+              if ("init" in kernels_foo)
+                kernels_foo.init();
+
               kernels_foo.allocate(type, params.image_rows, params.image_cols);
               if (is_timed) {
                 var iterations = common.loop_template_timed(kernels_foo.callable(), params['duration']);

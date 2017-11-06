@@ -33,16 +33,26 @@
       loop_template_timed: function(func_call, time_budget) {
         var iterations = 0;
         var start_time = Date.now();
+
+        var this_arg = this;
+        if ("this_arg" in func_call)
+          this_arg = func_call.this_arg;
+
         while (Date.now() - start_time < time_budget) {
           iterations += 1;
-          func_call["func"].apply(this, func_call["params"]);
+          func_call["func"].apply(this_arg, func_call["params"]);
         }
         return iterations;
       },
       loop_template_itrations: function(func_call, iterations) {
         var start_time = Date.now();
+
+        var this_arg = this;
+        if ("this_arg" in func_call)
+          this_arg = func_call.this_arg;
+
         for (var i=0; i < iterations; i+=1) {
-          func_call["func"].apply(this, func_call["params"]);
+          func_call["func"].apply(this_arg, func_call["params"]);
         }
         return Date.now() - start_time;
       }

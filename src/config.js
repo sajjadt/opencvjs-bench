@@ -49,9 +49,10 @@
         // Object detection
         'object_detection': {
           'run': true,
-          'functions': ['haar_detect', 'hog_compute'],
+          'functions': ['haar'],
           'iterations': 50
         },
+
         'video' : {
           'run': false,
           'functions': ['optical_flow', 'mean_shift'],
