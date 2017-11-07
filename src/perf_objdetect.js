@@ -12,7 +12,8 @@ var TYPES = common.types;
         name: 'cv.haardetect',
         types: [TYPES.UCharC1],
         init: function() {
-          cv.FS_createLazyFile('/', 'haarcascade_frontalface_default.xml',
+          if (common.app.env == 'node')
+            cv.FS_createLazyFile('/', 'haarcascade_frontalface_default.xml',
             '../assets/haarcascade_frontalface_default.xml', true, false);
         },
         allocate: function(type, image_rows, image_cols) {

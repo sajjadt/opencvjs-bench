@@ -2,7 +2,6 @@ var config = require("./config.js");
 var bench = require("./benchmark.js")
 var common = require("./common.js");
 
-
 var update = function(text) {
   console.log(text);
 }

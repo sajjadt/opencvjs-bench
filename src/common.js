@@ -55,8 +55,19 @@
           func_call["func"].apply(this_arg, func_call["params"]);
         }
         return Date.now() - start_time;
+      },
+      app: {
+        env: '',
+        agent: ''
       }
     };
+
+    if (typeof(window) !== 'undefined') {
+        Common.app.env = 'browser';
+        Common.app.agent = navigator.userAgent;
+    } else if (process) {
+        Common.app.env = 'node';
+    }
 
     return Common;
   })();
